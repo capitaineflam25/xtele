@@ -16,4 +16,6 @@ xtele_xxxx.lua are examples of model configuration
 **crit_bat** is the second battery limit. It is shown as a vertical dotted line on the battery gauge and an audio message will raise when the battery voltage will be lower to that value.
 
 
-**switch** is an array of switches to display (see examples files)
+**switch** is an array of switches states to be displayed at the bottom of the screen (see examples files)
+
+![Example](https://github.com/capitaineflam25/xtele/blob/master/img/xtele_example_01.png)
