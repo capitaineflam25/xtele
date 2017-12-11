@@ -1,5 +1,5 @@
 # xtele
-Extended telemetry screen for Taranis X7 (OpenTX)
+Extended telemetry screen for the FrsSky Taranis X7/X7S ([OpenTX](https://github.com/opentx/opentx))
 
 *xtele.lua* is the main script
 
