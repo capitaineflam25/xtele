@@ -1,8 +1,9 @@
 # xtele
 Extended telemetry screen for Taranis X7 (OpenTX)
 
-xtele.lua is the main script
-xtele_xxxx.lua are examples of model configuration
+*xtele.lua* is the main script
+
+*xtele_xxxx.lua* are examples of model configuration
 
 **BatterySensor** is the name of the telemetry sensor to use as battery
 
