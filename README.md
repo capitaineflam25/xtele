@@ -5,7 +5,7 @@ Extended telemetry screen for the FrsSky Taranis X7/X7S ([OpenTX](https://github
 
 *xtele_xxxx.lua* are examples of models configuration
 
-To create your own configuration file, create a *xtele_xxxx.lua* by copying on of the example and rename it so xxxx is the name of your model in OpenTX (Replace spaces by "_")
+To create your own configuration file, create a *xtele_xxxx.lua* by copying one of the example and rename it so xxxx is the name of your model in OpenTX (Replace spaces by "_")
 
 
 **BatterySensor** is the name of the telemetry sensor to use as battery
