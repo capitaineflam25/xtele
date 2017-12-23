@@ -1,12 +1,10 @@
 -- Configuration file for xtele.lua
 
-BatterySensor = "LiPo"
+BatterySensor = "LiPo" -- Telemetry Sensor Name
+BatteryCells = 3 -- LiPo Cell count
 
-max_bat = 12.6
-min_bat = 10.3
-
-warn_bat = 10.8
-crit_bat = 10.5
+bat_warn_voltage = 10.8
+bat_crit_voltage = 10.5
 
 switch = {
   { ["name"] = "sf", ["margin"] = 0, ["width"] = 20,  [1024] = { "Bip!", INVERS },                            [-1024] = { "Bip",  0 } },

@@ -7,12 +7,19 @@ name = string.gsub(name, " ", "_")
 config = assert(loadScript("/SCRIPTS/TELEMETRY/xtele_"..name..".lua"), "xtele_"..name..".lua is missing")
 config()
 
+-- LiPo non linear discharge curve
+-- 1S Voltage     0%   10%   20%   30%   40%   50%   60%   70%   80%   90%  100%
+battery_pct = { 3.00, 3.60, 3.70, 3.75, 3.79, 3.83, 3.87, 3.92, 3.97, 4.10, 4.20 }
+
+-- Adjusting voltage curve to battery cell count
+for p = 1, 11, 1 do
+  battery_pct[p] = battery_pct[p] * BatteryCells
+end
+
 --[[
 -- Using GVars instead of config file
-max_bat = getValue('gvar1')/10
-min_bat = getValue('gvar2')/10
-warn_bat = getValue('gvar3')/10
-crit_bat = getValue('gvar4')/10
+bat_warn_voltage = getValue('gvar1')/10
+bat_crit_voltage = getValue('gvar2')/10
 --]]
 
 local last_bat_warn_time = 0
@@ -28,13 +35,6 @@ local last_bat_warn_time = 0
 local x = 0
 local y = 0
 
-local function init_func()
-  -- doesn't work
-  --if max_bat < min_bat then
-  --  popupConfirmation("Check min and max bat values", 1)
-  --end
-end
-
 local function round(num, decimals)
   if (num == nill) then
     return 0
@@ -44,13 +44,53 @@ local function round(num, decimals)
   return math.floor(num * mult + 0.5) / mult
 end
 
+local function batPct(v)
+
+  -- LiPo discharge is not linear, doing a linear interpolation between 10% step values in "battery_pct" array
+
+  -- a = (v2 - v1) / (%2 - %1)
+  -- a = (v2 - v) / (%2 - %)
+  -- (v2 - v1) / (%2 - %1) = (v2 - v) / (%2 - %)
+  -- (%2 - %) = (v2 - v) * (%2 - %1) /  (v2 - v1)
+  -- % = %2 - (v2 - v) * (%2 - %1) /  (v2 - v1)
+    
+  local pct
+  if (v <= battery_pct[1])
+  then
+    pct = 0
+  else
+    for i=1, 10, 1 do
+      if (v >= battery_pct[i])
+      then
+          local pct2 = i*10
+          local pct1 = (i-1)*10
+          local v2 = battery_pct[i+1]
+          local v1 = battery_pct[i]
+          pct = round(pct2 - (v2 - v) * (pct2 - pct1) / (v2 - v1), 0)
+          if (pct > 100) then pct = 100 end
+      end
+    end
+  end
+  return pct
+end
+
+local function init_func()
+  -- doesn't work
+  --if max_bat < min_bat then
+  --  popupConfirmation("Check min and max bat values", 1)
+  --end
+
+  warn_bat_pct = batPct(bat_warn_voltage)
+  crit_bat_pct = batPct(bat_crit_voltage)
+end
+
 local function bg_func()
 
     -- blinking battery level and audio if necessary
   local cur =  getValue(BatterySensor)
   local flag = 0
 
-  if (cur < crit_bat) then
+  if (cur < bat_crit_voltage) then
 
     if (cur > 0 and getTime() - last_bat_warn_time > 8 --[[sec--]] * 100) then
       playFile("batcrit.wav")
@@ -59,11 +99,12 @@ local function bg_func()
     end
     flag = BLINK
 
-  elseif (cur < warn_bat) then
+  elseif (cur < bat_warn_voltage) then
 
     if (cur > 0 and getTime() - last_bat_warn_time > 10 --[[sec--]] * 100) then
       playFile("batlow.wav")
-      playHaptic(500, 200, PLAY_NOW)
+      -- no more haptic on low, only critical now
+      -- playHaptic(500, 200, PLAY_NOW)
       last_bat_warn_time = getTime()
     end
     flag = BLINK
@@ -73,13 +114,16 @@ local function bg_func()
   -- rounding value to display (native value could have many digits)
   local txt = round(cur, 1).."V"
   
+  local pct = batPct(cur)
+
+  lcd.drawText(2, y+4, pct.."%", flag)
   -- centering a bit
   --while (string.len(txt) <= 4) 
   --do
   --  txt = " "..txt
   --end
 
-  lcd.drawText(2, y, txt, flag)
+  lcd.drawText(2, y-5, txt, flag)
 end
 
 -- RSSI Bars
@@ -114,46 +158,44 @@ local function drawBatt(offset)
   lcd.drawPoint(x+offset+100, y+8, INVERT)
   
   local start = x + offset
-  local max_range = x + offset + 101
-  
-  -- debug
-  --lcd.drawText(x, 56, 100*(1-(max_bat - cur) / (max_bat - min_bat)))
+  local gauge_length = 100
   
   -- warning line
-  local convert = start + (max_range - start) * (1 - (max_bat - warn_bat) / (max_bat - min_bat))
+  local convert = start + gauge_length * warn_bat_pct / 100
   convert = math.floor(convert)
+
   -- we want it match a vertical line
   if (convert % 2 ~= 0) then
     convert = convert - 1
   end
   -- specific dotted line
   for z=0, 8, 2 do
-    lcd.drawPoint(convert, y-1+z)
+    lcd.drawPoint(convert, y - 1 + z)
   end
   
   -- critical line
-  local convert = start + (max_range - start) * (1 - (max_bat - crit_bat) / (max_bat - min_bat))
+  local convert = start + gauge_length * crit_bat_pct / 100
   convert = math.floor(convert)
   -- we want it match a vertical line
   if (convert % 2 ~= 0) then
     convert = convert - 1
   end
   -- specific dotted line
-  for z=0, 8, 2 do
-    lcd.drawPoint(convert, y-1+z)
+  for z = 0, 8, 2 do
+    lcd.drawPoint(convert, y - 1 + z)
   end
   
   -- battery level
-  local cur =  getValue(BatterySensor)
-  local convert = start + (max_range - start) * (1 - (max_bat - cur) / (max_bat - min_bat))
+  local cur_bat_pct =  batPct(getValue(BatterySensor))
+  local convert = start + gauge_length * cur_bat_pct / 100
   
-  -- security
+  -- security, screen width overflow
   if (convert > 128) then
     convert = 128
   end
 
-  for z=start, convert, 2 do
-     lcd.drawLine(z, y, z, y+6, SOLID, FORCE)
+  for z = start, convert, 2 do
+     lcd.drawLine(z, y, z, y + 6, SOLID, FORCE)
   end
 end
 
@@ -172,7 +214,7 @@ local function drawTxBat()
   else
     lcd.drawText(x+1, y+1, round(voltage, 1).."V", INVERS)
   end
-  
+
   -- battery gauge
   lcd.drawRectangle(x, y, 24, 15, SOLID)
   lcd.drawPoint(x+22, y+13)
@@ -236,7 +278,7 @@ local function run_func(event)
   lcd.clear()
 
   x = 1
-  y = 1
+  y = 0
   lcd.drawText(x, y, model.getInfo()["name"], DBLSIZE)
   
   y = y + 18
@@ -244,11 +286,11 @@ local function run_func(event)
   drawTxBat()
   drawRSSI()
   
-  y = y + 21
+  y = y + 22
   bg_func() -- audio in case of low battery
   drawBatt(25)
   
-  y = y + 12
+  y = y + 13
   drawSwitches()
 end
 
