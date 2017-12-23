@@ -11,14 +11,11 @@ Configuration file values :
 
 * **BatterySensor** is the name of the telemetry sensor to use as battery
 
-* **max_bat** is the maximum battery voltage in volt (Upper battery gauge limit)
+* **BatteryCells** LiPo cells count (ex. 2 for 2S) Used for the battery gauge limit and the percentage calculation (Based on the percentage discharge array)
 
-* **min_bat** is the minimum battery voltage in volt (Lower battery gauge limit)
+* **bat_warn_voltage** is the first battery limit. It is shown as a vertical dotted line on the battery gauge and an audio message will raise when the battery voltage will be lower to that value.
 
-
-* **warn_bat** is the first battery limit. It is shown as a vertical dotted line on the battery gauge and an audio message will raise when the battery voltage will be lower to that value.
-
-* **crit_bat** is the second battery limit. It is shown as a vertical dotted line on the battery gauge and an audio message will raise when the battery voltage will be lower to that value.
+* **bat_crit_voltage** is the second battery limit. It is shown as a vertical dotted line on the battery gauge and an audio and haptic message will raise when the battery voltage will be lower to that value.
 
 
 * **switch** is an array of switches states to be displayed at the bottom of the screen (see examples files)
